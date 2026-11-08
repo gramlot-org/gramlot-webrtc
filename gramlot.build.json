@@ -1,0 +1,12 @@
+{
+  "output": "./src",
+  "collections": [
+    {"entry": "./js/src/webrtc.js", "pythonPackage": "gramlot_webrtc.collections.webrtc"}
+  ],
+  "externals": [
+    {"entry": "@gramlot/gramlot/components/drawing", "pythonImport": "gramlot.collections.drawing:mygramlot"},
+    {"entry": "@gramlot/gramlot/components/inputs", "pythonImport": "gramlot.collections.inputs:mygramlot"},
+    {"entry": "@gramlot/gramlot/components/layout", "pythonImport": "gramlot.collections.layout:mygramlot"},
+    {"entry": "@gramlot/gramlot/components/tree", "pythonImport": "gramlot.collections.tree:mygramlot"}
+  ]
+}

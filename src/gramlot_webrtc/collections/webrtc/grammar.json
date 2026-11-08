@@ -1,0 +1,1274 @@
+{
+  "abstracts": {},
+  "document_format": {
+    "name": "builder_grammar",
+    "version": "1.1"
+  },
+  "elements": {
+    "rtcAnnotations": {
+      "_meta": {
+        "gramlot_component": {
+          "command": false,
+          "dataScope": false,
+          "parameters": {
+            "host": {
+              "binding": "read",
+              "default": false,
+              "dtype": "B"
+            },
+            "locked": {
+              "binding": "twoWay",
+              "default": false,
+              "dtype": "B"
+            },
+            "outgoing": {
+              "binding": "twoWay",
+              "dtype": "X",
+              "nullable": true
+            },
+            "ratio": {
+              "binding": "twoWay",
+              "dtype": "R",
+              "nullable": true
+            },
+            "received": {
+              "binding": "read",
+              "dtype": "X",
+              "nullable": true
+            },
+            "shapes": {
+              "binding": "read",
+              "dtype": "X"
+            },
+            "share": {
+              "binding": "read",
+              "default": "",
+              "dtype": "T"
+            },
+            "sharer": {
+              "binding": "read",
+              "default": false,
+              "dtype": "B"
+            },
+            "tool": {
+              "binding": "read",
+              "default": "pointer",
+              "dtype": "T",
+              "enum": [
+                "pointer",
+                "freehand",
+                "arrow",
+                "circle",
+                "text"
+              ]
+            }
+          },
+          "presentationDefaults": [],
+          "sourceContext": true
+        },
+        "render_tag": "gramlot-rtc-annotations"
+      },
+      "attributes": {
+        "accepts_var_keyword": true,
+        "accepts_var_positional": false,
+        "parameters": [
+          {
+            "annotation": {
+              "dtype": "T",
+              "kind": "dtype"
+            },
+            "default": "",
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "share",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "B",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": false,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "sharer",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "B",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": false,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "host",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "dtype": "T",
+              "kind": "dtype"
+            },
+            "default": "pointer",
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "tool",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "B",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": false,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "locked",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "X",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": null,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "shapes",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "X",
+                  "kind": "dtype"
+                },
+                {
+                  "dtype": "NN",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": null,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "received",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "X",
+                  "kind": "dtype"
+                },
+                {
+                  "dtype": "NN",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": null,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "outgoing",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "R",
+                  "kind": "dtype"
+                },
+                {
+                  "dtype": "NN",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": null,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "ratio",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "kind": "any"
+            },
+            "has_default": false,
+            "kind": "var_keyword",
+            "name": "attr",
+            "role": "attribute"
+          }
+        ]
+      },
+      "collection_key": null,
+      "doc": null,
+      "inherits_from": null,
+      "node_label": null,
+      "ns": null,
+      "parent_tags": null,
+      "sub_tags": "*"
+    },
+    "rtcRoom": {
+      "_meta": {
+        "gramlot_component": {
+          "command": false,
+          "dataScope": false,
+          "parameters": {
+            "annotation": {
+              "binding": "read",
+              "dtype": "X",
+              "nullable": true
+            },
+            "audioInput": {
+              "binding": "twoWay",
+              "default": "",
+              "dtype": "T"
+            },
+            "audioInputs": {
+              "binding": "twoWay",
+              "dtype": "X",
+              "nullable": true
+            },
+            "audioOutput": {
+              "binding": "twoWay",
+              "default": "",
+              "dtype": "T"
+            },
+            "audioOutputs": {
+              "binding": "twoWay",
+              "dtype": "X",
+              "nullable": true
+            },
+            "avatar": {
+              "binding": "read",
+              "default": "",
+              "dtype": "T"
+            },
+            "camera": {
+              "binding": "twoWay",
+              "default": false,
+              "dtype": "B"
+            },
+            "canPublish": {
+              "binding": "twoWay",
+              "dtype": "B",
+              "nullable": true
+            },
+            "chat": {
+              "binding": "read",
+              "dtype": "X",
+              "nullable": true
+            },
+            "connect": {
+              "binding": "twoWay",
+              "default": false,
+              "dtype": "B"
+            },
+            "error": {
+              "binding": "twoWay",
+              "default": "",
+              "dtype": "T"
+            },
+            "grid": {
+              "binding": "read",
+              "default": true,
+              "dtype": "B"
+            },
+            "hand": {
+              "binding": "twoWay",
+              "default": false,
+              "dtype": "B"
+            },
+            "lastAnnotation": {
+              "binding": "twoWay",
+              "dtype": "X",
+              "nullable": true
+            },
+            "lastChat": {
+              "binding": "twoWay",
+              "dtype": "X",
+              "nullable": true
+            },
+            "lastReaction": {
+              "binding": "twoWay",
+              "dtype": "X",
+              "nullable": true
+            },
+            "microphone": {
+              "binding": "twoWay",
+              "default": false,
+              "dtype": "B"
+            },
+            "participants": {
+              "binding": "twoWay",
+              "dtype": "X",
+              "nullable": true
+            },
+            "reaction": {
+              "binding": "read",
+              "dtype": "T",
+              "nullable": true
+            },
+            "screen": {
+              "binding": "twoWay",
+              "default": false,
+              "dtype": "B"
+            },
+            "status": {
+              "binding": "twoWay",
+              "default": "disconnected",
+              "dtype": "T"
+            },
+            "token": {
+              "binding": "read",
+              "default": "",
+              "dtype": "T"
+            },
+            "unmuteRequested": {
+              "binding": "twoWay",
+              "default": false,
+              "dtype": "B"
+            },
+            "url": {
+              "binding": "read",
+              "default": "",
+              "dtype": "T"
+            },
+            "videoInput": {
+              "binding": "twoWay",
+              "default": "",
+              "dtype": "T"
+            },
+            "videoInputs": {
+              "binding": "twoWay",
+              "dtype": "X",
+              "nullable": true
+            }
+          },
+          "presentationDefaults": [],
+          "sourceContext": true
+        },
+        "render_tag": "gramlot-rtc-room"
+      },
+      "attributes": {
+        "accepts_var_keyword": true,
+        "accepts_var_positional": false,
+        "parameters": [
+          {
+            "annotation": {
+              "dtype": "T",
+              "kind": "dtype"
+            },
+            "default": "",
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "url",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "dtype": "T",
+              "kind": "dtype"
+            },
+            "default": "",
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "token",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "B",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": false,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "connect",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "B",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": false,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "microphone",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "B",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": false,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "camera",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "B",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": false,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "screen",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "dtype": "T",
+              "kind": "dtype"
+            },
+            "default": "disconnected",
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "status",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "dtype": "T",
+              "kind": "dtype"
+            },
+            "default": "",
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "error",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "X",
+                  "kind": "dtype"
+                },
+                {
+                  "dtype": "NN",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": null,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "participants",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "B",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": true,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "grid",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "B",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": false,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "hand",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "T",
+                  "kind": "dtype"
+                },
+                {
+                  "dtype": "NN",
+                  "kind": "dtype"
+                }
+              ],
+              "kind": "union"
+            },
+            "default": null,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "reaction",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "X",
+                  "kind": "dtype"
+                },
+                {
+                  "dtype": "NN",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": null,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "lastReaction",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "X",
+                  "kind": "dtype"
+                },
+                {
+                  "dtype": "NN",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": null,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "chat",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "X",
+                  "kind": "dtype"
+                },
+                {
+                  "dtype": "NN",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": null,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "lastChat",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "B",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": false,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "unmuteRequested",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "B",
+                  "kind": "dtype"
+                },
+                {
+                  "dtype": "NN",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": null,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "canPublish",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "dtype": "T",
+              "kind": "dtype"
+            },
+            "default": "",
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "avatar",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "X",
+                  "kind": "dtype"
+                },
+                {
+                  "dtype": "NN",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": null,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "annotation",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "X",
+                  "kind": "dtype"
+                },
+                {
+                  "dtype": "NN",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": null,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "lastAnnotation",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "X",
+                  "kind": "dtype"
+                },
+                {
+                  "dtype": "NN",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": null,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "audioInputs",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "X",
+                  "kind": "dtype"
+                },
+                {
+                  "dtype": "NN",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": null,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "videoInputs",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "X",
+                  "kind": "dtype"
+                },
+                {
+                  "dtype": "NN",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": null,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "audioOutputs",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "dtype": "T",
+              "kind": "dtype"
+            },
+            "default": "",
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "audioInput",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "dtype": "T",
+              "kind": "dtype"
+            },
+            "default": "",
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "videoInput",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "dtype": "T",
+              "kind": "dtype"
+            },
+            "default": "",
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "audioOutput",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "kind": "any"
+            },
+            "has_default": false,
+            "kind": "var_keyword",
+            "name": "attr",
+            "role": "attribute"
+          }
+        ]
+      },
+      "collection_key": null,
+      "doc": null,
+      "inherits_from": null,
+      "node_label": null,
+      "ns": null,
+      "parent_tags": null,
+      "sub_tags": "*"
+    },
+    "rtcTile": {
+      "_meta": {
+        "gramlot_component": {
+          "command": false,
+          "dataScope": false,
+          "parameters": {
+            "aspectRatio": {
+              "binding": "read",
+              "childParameter": true,
+              "default": 1.7777777777777777,
+              "dtype": "R"
+            },
+            "identity": {
+              "binding": "read",
+              "default": "",
+              "dtype": "T"
+            },
+            "source": {
+              "binding": "read",
+              "default": "camera",
+              "dtype": "T",
+              "enum": [
+                "camera",
+                "screen"
+              ]
+            }
+          },
+          "presentationDefaults": []
+        },
+        "render_tag": "gramlot-rtc-tile"
+      },
+      "attributes": {
+        "accepts_var_keyword": true,
+        "accepts_var_positional": false,
+        "parameters": [
+          {
+            "annotation": {
+              "dtype": "T",
+              "kind": "dtype"
+            },
+            "default": "",
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "identity",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "dtype": "T",
+              "kind": "dtype"
+            },
+            "default": "camera",
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "source",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "items": [
+                {
+                  "dtype": "R",
+                  "kind": "dtype"
+                },
+                {
+                  "base": {
+                    "dtype": "T",
+                    "kind": "dtype"
+                  },
+                  "kind": "annotated",
+                  "metadata": [
+                    {
+                      "flags": 0,
+                      "kind": "regex",
+                      "pattern": "^[\\^=].+"
+                    }
+                  ]
+                }
+              ],
+              "kind": "union"
+            },
+            "default": 1.7777777777777777,
+            "has_default": true,
+            "kind": "keyword_only",
+            "name": "aspectRatio",
+            "role": "attribute"
+          },
+          {
+            "annotation": {
+              "kind": "any"
+            },
+            "has_default": false,
+            "kind": "var_keyword",
+            "name": "attr",
+            "role": "attribute"
+          }
+        ]
+      },
+      "collection_key": null,
+      "doc": null,
+      "inherits_from": null,
+      "node_label": null,
+      "ns": null,
+      "parent_tags": null,
+      "sub_tags": ""
+    }
+  },
+  "grammar": {
+    "description": null,
+    "name": "webrtc",
+    "title": "webrtc",
+    "version": null
+  }
+}

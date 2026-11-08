@@ -1,0 +1,37 @@
+{
+  "name": "@gramlot/gramlot-webrtc",
+  "version": "0.1.0",
+  "description": "The Gramlot webrtc collection: LiveKit rooms, tiles and annotations.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gramlot-org/gramlot-webrtc.git"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "gramlot-builder build",
+    "check": "gramlot-builder check",
+    "test": "node --test --test-concurrency=2 js/tests/*.test.js"
+  },
+  "dependencies": {
+    "@gramlot/gramlot": ">=0.3.35",
+    "livekit-client": "2.23.0"
+  },
+  "devDependencies": {
+    "jsdom": "27.0.1"
+  },
+  "exports": {
+    ".": "./js/src/webrtc.js"
+  },
+  "files": [
+    "LICENSE",
+    "NOTICE",
+    "js/src"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
