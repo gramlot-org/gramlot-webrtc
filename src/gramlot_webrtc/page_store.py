@@ -2,15 +2,12 @@
 
 The room operations that need no page live in ``RtcRooms``; this store holds one in ``rooms``.
 """
-import json
 from uuid import uuid4
 
 from genro_bag import Bag
 from gramlot import PageStore
-from livekit import api
 
-from .rooms import (ROLE_ATTRIBUTE, SIGNAL_TOPIC, STATE_ATTRIBUTE, AdmissionRefused, NotRoomAdmin, RtcError,
-                    RtcRooms, settings_from_metadata)
+from .rooms import AdmissionRefused, NotRoomAdmin, RtcError, RtcRooms, settings_from_metadata
 
 
 class RtcPageStore(PageStore):
@@ -89,17 +86,11 @@ class RtcPageStore(PageStore):
 
     def configure_room(self, *, admission=None, allowed=None, locked=None):
         """Change the given settings of the joined room; the others keep their value."""
-        room = self.require_admin()
-        changes = {key: value for key, value in dict(admission=admission, allowed=allowed, locked=locked).items()
-                   if value is not None}
-        self.rooms.create_room(room, **{**(self.rooms.room_settings(room) or {}), **changes})
+        self.rooms.configure_room(self.require_admin(), admission=admission, allowed=allowed, locked=locked)
 
     def lock_room(self, locked=True):
-        """Lock or unlock the joined room and return the new lock state.
-
-        A locked room admits no new participant except administrators."""
-        self.configure_room(locked=bool(locked))
-        return bool(locked)
+        """Lock or unlock the joined room and return the new lock state."""
+        return self.rooms.lock_room(self.require_admin(), locked)
 
     def create_guest_invitation(self, *, expires_in=86400):
         """Return a guest invitation for the joined room with its title; only its administrator may create one."""
@@ -110,106 +101,49 @@ class RtcPageStore(PageStore):
 
     def lobby_queue(self):
         """The participants waiting in the joined room: identity, name, role and since (Unix seconds)."""
-        self.require_admin()
-        return [dict(identity=p.identity, name=p.name, role=p.attributes.get(ROLE_ATTRIBUTE), since=p.joined_at)
-                for p in self.participants() if p.attributes.get(STATE_ATTRIBUTE) == 'waiting']
-
-    async def _waiting_participant(self, service, room, identity):
-        """The ParticipantInfo of a waiting participant of ``room``; ValueError when there is none."""
-        participants = (await service.list_participants(api.ListParticipantsRequest(room=room))).participants
-        for participant in participants:
-            if participant.identity == identity and participant.attributes.get(STATE_ATTRIBUTE) == 'waiting':
-                return participant
-        raise ValueError(f'No waiting participant {identity}')
+        return self.rooms.lobby_queue(self.require_admin())
 
     def admit(self, identity):
-        """Give a waiting participant publish, subscribe and data permissions and the state admitted."""
-        room = self.require_admin()
-
-        async def admit(service):
-            await self._waiting_participant(service, room, identity)
-            await service.update_participant(api.UpdateParticipantRequest(
-                room=room, identity=identity, attributes={STATE_ATTRIBUTE: 'admitted'},
-                permission=api.ParticipantPermission(can_publish=True, can_subscribe=True, can_publish_data=True)))
-        self.rooms.call_livekit(admit)
+        self.rooms.admit(self.require_admin(), identity)
 
     def admit_all(self):
-        for entry in self.lobby_queue():
-            self.admit(entry['identity'])
+        self.rooms.admit_all(self.require_admin())
 
     def deny(self, identity):
-        """Remove a waiting participant from the room."""
-        room = self.require_admin()
+        self.rooms.deny(self.require_admin(), identity)
 
-        async def deny(service):
-            await self._waiting_participant(service, room, identity)
-            await service.remove_participant(api.RoomParticipantIdentity(room=room, identity=identity))
-        self.rooms.call_livekit(deny)
-
-    # Administrator: participants.
-
-    def _mute_sources(self, identities, sources):
-        """Mute the published tracks of ``sources`` for each identity; return the muted track count."""
-        room = self.require_admin()
-
-        async def mute(service):
-            muted = 0
-            for identity in identities:
-                participant = await service.get_participant(
-                    api.RoomParticipantIdentity(room=room, identity=identity))
-                for track in participant.tracks:
-                    if track.source in sources and not track.muted:
-                        await service.mute_published_track(api.MuteRoomTrackRequest(
-                            room=room, identity=identity, track_sid=track.sid, muted=True))
-                        muted += 1
-            return muted
-        return self.rooms.call_livekit(mute)
+    # Administrator: participants. The room operations are those of RtcRooms on the joined room.
 
     def mute_microphone(self, identity):
-        return self._mute_sources([identity], {api.TrackSource.MICROPHONE})
+        return self.rooms.mute_microphone(self.require_admin(), identity)
 
     def stop_camera(self, identity):
-        return self._mute_sources([identity], {api.TrackSource.CAMERA})
+        return self.rooms.stop_camera(self.require_admin(), identity)
 
     def stop_screen_share(self, identity):
-        return self._mute_sources([identity], {api.TrackSource.SCREEN_SHARE, api.TrackSource.SCREEN_SHARE_AUDIO})
+        return self.rooms.stop_screen_share(self.require_admin(), identity)
 
     def participants(self):
         """The participants of the joined room as LiveKit ParticipantInfo records."""
-        room = self.require_admin()
-
-        async def listing(service):
-            return list((await service.list_participants(api.ListParticipantsRequest(room=room))).participants)
-        return self.rooms.call_livekit(listing)
+        return self.rooms.participants(self.require_admin())
 
     def mute_all(self):
         """Mute every microphone except the caller's and those of presenters."""
-        self.require_admin()
-        identities = [p.identity for p in self.participants()
-                      if p.identity != self.joined['identity'] and p.attributes.get(ROLE_ATTRIBUTE) != 'presenter']
-        return self._mute_sources(identities, {api.TrackSource.MICROPHONE})
+        return self.rooms.mute_all(self.require_admin(), keep=[self.joined['identity']])
 
     def end_meeting(self):
         """Close the joined room for everyone: LiveKit disconnects every participant."""
         self.rooms.end_room(self.require_admin())
 
     def remove_participant(self, identity):
-        room = self.require_admin()
-        self.rooms.call_livekit(lambda service: service.remove_participant(
-            api.RoomParticipantIdentity(room=room, identity=identity)))
+        self.rooms.remove_participant(self.require_admin(), identity)
 
     def promote_to_presenter(self, identity):
-        room = self.require_admin()
-        self.rooms.call_livekit(lambda service: service.update_participant(api.UpdateParticipantRequest(
-            room=room, identity=identity, attributes={ROLE_ATTRIBUTE: 'presenter'})))
+        self.rooms.promote_to_presenter(self.require_admin(), identity)
 
     def request_unmute(self, identity):
         """Send ``{"kind": "unmute-request"}`` on topic gramlot.rtc to ``identity`` only."""
-        room = self.require_admin()
-        data = json.dumps({'kind': 'unmute-request'}).encode('utf-8')
-        self.rooms.call_livekit(lambda service: service.send_data(api.SendDataRequest(
-            room=room, data=data, kind=api.DataPacket.Kind.RELIABLE,
-            destination_identities=[identity], topic=SIGNAL_TOPIC)))
+        self.rooms.request_unmute(self.require_admin(), identity)
 
     # Page requests through the store Data.
 

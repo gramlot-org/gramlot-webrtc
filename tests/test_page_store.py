@@ -12,7 +12,7 @@ from genro_bag import Bag
 from genro_tytx import from_tytx
 
 import livekit.api as livekit_api
-from livekit.protocol import models, room as room_proto
+from livekit.protocol import egress as egress_proto, models, room as room_proto
 
 from gramlot_webrtc import RtcPageStore, RtcRooms
 from gramlot_webrtc import rooms as rtc
@@ -90,8 +90,12 @@ class FakeLiveKit:
                             RemoveParticipant=(room_proto.RoomParticipantIdentity, room_proto.RemoveParticipantResponse),
                             UpdateParticipant=(room_proto.UpdateParticipantRequest, models.ParticipantInfo),
                             SendData=(room_proto.SendDataRequest, room_proto.SendDataResponse),
-                            DeleteRoom=(room_proto.DeleteRoomRequest, room_proto.DeleteRoomResponse))
+                            DeleteRoom=(room_proto.DeleteRoomRequest, room_proto.DeleteRoomResponse),
+                            StartRoomCompositeEgress=(egress_proto.RoomCompositeEgressRequest, egress_proto.EgressInfo),
+                            StopEgress=(egress_proto.StopEgressRequest, egress_proto.EgressInfo),
+                            ListEgress=(egress_proto.ListEgressRequest, egress_proto.ListEgressResponse))
         self.rooms = {}
+        self.egresses = {}
         self.participants = {}
         self.data = []
         fake = self
@@ -110,7 +114,9 @@ class FakeLiveKit:
                 message = request_class.FromString(self.rfile.read(int(self.headers['Content-Length'])))
                 grants = livekit_api.TokenVerifier(KEY, SECRET).verify(
                     self.headers['Authorization'].removeprefix('Bearer ')).video
-                if method == 'ListRooms':
+                if method in ('StartRoomCompositeEgress', 'StopEgress', 'ListEgress'):
+                    authorized = grants.room_record
+                elif method == 'ListRooms':
                     authorized = grants.room_list
                 elif method in ('CreateRoom', 'DeleteRoom'):
                     authorized = grants.room_create
@@ -118,7 +124,7 @@ class FakeLiveKit:
                     authorized = grants.room_admin and grants.room == message.room
                 if not authorized:
                     return self.refuse(401)
-                if method not in ('ListRooms', 'CreateRoom', 'DeleteRoom') and message.room not in fake.rooms:
+                if hasattr(message, 'room') and method not in ('CreateRoom', 'DeleteRoom') and message.room not in fake.rooms:
                     return self.refuse(404)
                 body = getattr(fake, method)(message, response_class).SerializeToString()
                 self.send_response(200)
@@ -158,7 +164,8 @@ class FakeLiveKit:
         return {models.TrackSource.Name(t.source) for t in self.participants[room][identity].tracks if t.muted}
 
     def ListRooms(self, message, response):
-        return response(rooms=[self.rooms[name] for name in message.names if name in self.rooms])
+        names = message.names or list(self.rooms)
+        return response(rooms=[self.rooms[name] for name in names if name in self.rooms])
 
     def CreateRoom(self, message, response):
         if message.name not in self.rooms:
@@ -200,6 +207,22 @@ class FakeLiveKit:
         del self.rooms[message.room]
         del self.participants[message.room]
         return response()
+
+    def StartRoomCompositeEgress(self, message, response):
+        egress_id = f'EG_{len(self.egresses) + 1}'
+        self.egresses[egress_id] = response(egress_id=egress_id, room_name=message.room_name,
+                                            status=egress_proto.EgressStatus.EGRESS_ACTIVE, room_composite=message)
+        return self.egresses[egress_id]
+
+    def StopEgress(self, message, response):
+        self.egresses[message.egress_id].status = egress_proto.EgressStatus.EGRESS_ENDING
+        return self.egresses[message.egress_id]
+
+    def ListEgress(self, message, response):
+        active = {egress_proto.EgressStatus.EGRESS_STARTING, egress_proto.EgressStatus.EGRESS_ACTIVE}
+        return response(items=[info for info in self.egresses.values()
+                               if (not message.room_name or info.room_name == message.room_name)
+                               and (not message.active or info.status in active)])
 
 
 @pytest.fixture
@@ -500,3 +523,50 @@ def test_end_meeting_closes_the_joined_room(livekit):
     admin = admin_in(livekit, 'closing')
     admin.end_meeting()
     assert 'closing' not in livekit.rooms
+
+
+def test_room_operations_without_a_page(livekit):
+    rooms = RtcRooms.from_environment()
+    rooms.create_room('meet', admission='lobby')
+    rooms.create_room('other')
+    livekit.add('meet', 'host', 'admin', 'MICROPHONE')
+    livekit.add('meet', 'guest1', 'guest', 'MICROPHONE', 'CAMERA')
+    livekit.add('meet', 'speaker', 'presenter', 'MICROPHONE')
+    waiting = livekit.participants['meet']['late'] = models.ParticipantInfo(
+        identity='late', name='Late', state=models.ParticipantInfo.State.ACTIVE, joined_at=1000,
+        attributes={'gramlot.role': 'guest', 'gramlot.state': 'waiting'})
+    listing = {room.name: sorted(p.identity for p in participants) for room, participants in rooms.list_rooms()}
+    assert listing == {'meet': ['guest1', 'host', 'late', 'speaker'], 'other': []}
+    assert rooms.participant('meet', 'guest1').identity == 'guest1'
+    assert rooms.lobby_queue('meet') == [dict(identity='late', name='Late', role='guest', since=1000)]
+    rooms.admit('meet', 'late')
+    assert waiting.attributes['gramlot.state'] == 'admitted' and waiting.permission.can_publish
+    with pytest.raises(ValueError, match='No waiting participant late'):
+        rooms.deny('meet', 'late')
+    assert rooms.mute_all('meet', keep=['host']) == 1
+    assert livekit.muted('meet', 'guest1') == {'MICROPHONE'} and not livekit.muted('meet', 'host')
+    assert not livekit.muted('meet', 'speaker')
+    assert rooms.stop_camera('meet', 'guest1') == 1
+    assert rooms.lock_room('meet') is True
+    assert livekit.settings('meet') == dict(admission='lobby', allowed=[], locked=True)
+    rooms.remove_participant('meet', 'guest1')
+    assert 'guest1' not in livekit.participants['meet']
+
+
+def test_recordings_through_egress(livekit):
+    rooms = RtcRooms.from_environment()
+    rooms.create_room('meet')
+    rooms.create_room('other')
+    with pytest.raises(ValueError, match='filepath'):
+        rooms.start_recording('meet', '')
+    started = rooms.start_recording('meet', 'livekit/recordings/{room_name}-{time}.mp4')
+    assert started.status == egress_proto.EgressStatus.EGRESS_ACTIVE
+    request = livekit.egresses[started.egress_id].room_composite
+    assert (request.room_name, request.layout) == ('meet', 'speaker')
+    assert [(o.file_type, o.filepath) for o in request.file_outputs] == [
+        (egress_proto.EncodedFileType.MP4, 'livekit/recordings/{room_name}-{time}.mp4')]
+    other = rooms.start_recording('other', 'x.mp4', layout='grid')
+    assert [e.egress_id for e in rooms.recordings(room='meet')] == [started.egress_id]
+    assert rooms.stop_recording(started.egress_id).status == egress_proto.EgressStatus.EGRESS_ENDING
+    assert [e.egress_id for e in rooms.recordings(active=True)] == [other.egress_id]
+    assert len(rooms.recordings()) == 2
