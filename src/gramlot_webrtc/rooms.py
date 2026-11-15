@@ -281,16 +281,164 @@ class RtcRooms:
         """Close ``room`` for everyone: LiveKit disconnects every participant."""
         self.call_livekit(lambda service: service.delete_room(api.DeleteRoomRequest(room=room)))
 
+    def configure_room(self, room, *, admission=None, allowed=None, locked=None):
+        """Change the given settings of ``room``; the others keep their value."""
+        changes = {key: value for key, value in dict(admission=admission, allowed=allowed, locked=locked).items()
+                   if value is not None}
+        self.create_room(room, **{**(self.room_settings(room) or {}), **changes})
+
+    def lock_room(self, room, locked=True):
+        """Lock or unlock ``room`` and return the new lock state.
+
+        A locked room admits no new participant except administrators."""
+        self.configure_room(room, locked=bool(locked))
+        return bool(locked)
+
+    # Rooms and participants of the whole server.
+
+    def list_rooms(self):
+        """Every room of the server with its participants, read in one LiveKit connection.
+
+        Returns a list of ``(room, participants)``: a LiveKit Room record and the list of its
+        ParticipantInfo records.
+        """
+        async def read(service):
+            rooms = (await service.list_rooms(api.ListRoomsRequest())).rooms
+            return [(room, list((await service.list_participants(
+                api.ListParticipantsRequest(room=room.name))).participants)) for room in rooms]
+        return self.call_livekit(read)
+
+    def participants(self, room):
+        """The participants of ``room`` as LiveKit ParticipantInfo records."""
+        async def listing(service):
+            return list((await service.list_participants(api.ListParticipantsRequest(room=room))).participants)
+        return self.call_livekit(listing)
+
+    def participant(self, room, identity):
+        """The LiveKit ParticipantInfo of ``identity`` in ``room``."""
+        return self.call_livekit(lambda service: service.get_participant(
+            api.RoomParticipantIdentity(room=room, identity=identity)))
+
+    # Lobby.
+
+    def lobby_queue(self, room):
+        """The participants waiting in ``room``: identity, name, role and since (Unix seconds)."""
+        return [dict(identity=p.identity, name=p.name, role=p.attributes.get(ROLE_ATTRIBUTE), since=p.joined_at)
+                for p in self.participants(room) if p.attributes.get(STATE_ATTRIBUTE) == 'waiting']
+
+    @staticmethod
+    async def _waiting_participant(service, room, identity):
+        """The ParticipantInfo of a waiting participant of ``room``; ValueError when there is none."""
+        participants = (await service.list_participants(api.ListParticipantsRequest(room=room))).participants
+        for participant in participants:
+            if participant.identity == identity and participant.attributes.get(STATE_ATTRIBUTE) == 'waiting':
+                return participant
+        raise ValueError(f'No waiting participant {identity}')
+
+    def admit(self, room, identity):
+        """Give a waiting participant publish, subscribe and data permissions and the state admitted."""
+        async def admit(service):
+            await self._waiting_participant(service, room, identity)
+            await service.update_participant(api.UpdateParticipantRequest(
+                room=room, identity=identity, attributes={STATE_ATTRIBUTE: 'admitted'},
+                permission=api.ParticipantPermission(can_publish=True, can_subscribe=True, can_publish_data=True)))
+        self.call_livekit(admit)
+
+    def admit_all(self, room):
+        """Admit every participant waiting in ``room``."""
+        for entry in self.lobby_queue(room):
+            self.admit(room, entry['identity'])
+
+    def deny(self, room, identity):
+        """Remove a waiting participant from ``room``."""
+        async def deny(service):
+            await self._waiting_participant(service, room, identity)
+            await service.remove_participant(api.RoomParticipantIdentity(room=room, identity=identity))
+        self.call_livekit(deny)
+
+    # Participants. The server mutes and never unmutes: an unmute is a request the participant answers.
+
+    def mute_sources(self, room, identities, sources):
+        """Mute the published tracks of ``sources`` for each identity; return the muted track count."""
+        async def mute(service):
+            muted = 0
+            for identity in identities:
+                participant = await service.get_participant(
+                    api.RoomParticipantIdentity(room=room, identity=identity))
+                for track in participant.tracks:
+                    if track.source in sources and not track.muted:
+                        await service.mute_published_track(api.MuteRoomTrackRequest(
+                            room=room, identity=identity, track_sid=track.sid, muted=True))
+                        muted += 1
+            return muted
+        return self.call_livekit(mute)
+
+    def mute_microphone(self, room, identity):
+        return self.mute_sources(room, [identity], {api.TrackSource.MICROPHONE})
+
+    def stop_camera(self, room, identity):
+        return self.mute_sources(room, [identity], {api.TrackSource.CAMERA})
+
+    def stop_screen_share(self, room, identity):
+        return self.mute_sources(room, [identity], {api.TrackSource.SCREEN_SHARE, api.TrackSource.SCREEN_SHARE_AUDIO})
+
+    def mute_all(self, room, *, keep=()):
+        """Mute every microphone of ``room`` except those of presenters and of the identities in ``keep``."""
+        identities = [p.identity for p in self.participants(room)
+                      if p.identity not in keep and p.attributes.get(ROLE_ATTRIBUTE) != 'presenter']
+        return self.mute_sources(room, identities, {api.TrackSource.MICROPHONE})
+
+    def remove_participant(self, room, identity):
+        self.call_livekit(lambda service: service.remove_participant(
+            api.RoomParticipantIdentity(room=room, identity=identity)))
+
+    def promote_to_presenter(self, room, identity):
+        self.call_livekit(lambda service: service.update_participant(api.UpdateParticipantRequest(
+            room=room, identity=identity, attributes={ROLE_ATTRIBUTE: 'presenter'})))
+
+    def request_unmute(self, room, identity):
+        """Send ``{"kind": "unmute-request"}`` on topic gramlot.rtc to ``identity`` only."""
+        data = json.dumps({'kind': 'unmute-request'}).encode('utf-8')
+        self.call_livekit(lambda service: service.send_data(api.SendDataRequest(
+            room=room, data=data, kind=api.DataPacket.Kind.RELIABLE,
+            destination_identities=[identity], topic=SIGNAL_TOPIC)))
+
+    # Recordings: LiveKit Egress. The egress worker writes the file to the storage of its own configuration.
+
+    def start_recording(self, room, filepath, *, layout='speaker'):
+        """Start a composite recording of ``room`` to an MP4 file and return its LiveKit EgressInfo.
+
+        ``filepath`` is the file path in the egress storage; LiveKit replaces ``{room_name}`` and
+        ``{time}`` in it. ``layout`` is a LiveKit composite layout (``speaker``, ``grid``, ...).
+        """
+        if not isinstance(filepath, str) or not filepath:
+            raise ValueError('filepath must be a nonempty string')
+        output = api.EncodedFileOutput(file_type=api.EncodedFileType.MP4, filepath=filepath)
+        return self.call_livekit(lambda service: service.start_room_composite_egress(
+            api.RoomCompositeEgressRequest(room_name=room, layout=layout, file_outputs=[output])), service='egress')
+
+    def stop_recording(self, egress_id):
+        """Stop the recording ``egress_id`` and return its LiveKit EgressInfo."""
+        return self.call_livekit(lambda service: service.stop_egress(api.StopEgressRequest(egress_id=egress_id)),
+                                 service='egress')
+
+    def recordings(self, *, room=None, active=False):
+        """The LiveKit EgressInfo records of the server, of ``room`` when given, only the active ones when ``active``."""
+        request = api.ListEgressRequest(room_name=room or '', active=active)
+        return list(self.call_livekit(lambda service: service.list_egress(request), service='egress').items)
+
     # LiveKit server calls.
 
-    def call_livekit(self, operation):
-        """Run ``operation(room_service)``, a coroutine function, and return its result.
+    def call_livekit(self, operation, *, service='room'):
+        """Run ``operation(client_service)``, a coroutine function, and return its result.
 
-        The callers are synchronous; the call runs in its own event loop and thread.
+        ``service`` is the attribute of ``livekit.api.LiveKitAPI`` passed to ``operation``: ``room``
+        (RoomService) or ``egress``. The callers are synchronous; the call runs in its own event loop
+        and thread.
         """
         async def run():
             async with api.LiveKitAPI(self.livekit_url, self._api_key, self._api_secret) as client:
-                return await operation(client.room)
+                return await operation(getattr(client, service))
 
         with ThreadPoolExecutor(max_workers=1) as pool:
             return pool.submit(asyncio.run, run()).result()
