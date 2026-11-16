@@ -13,6 +13,7 @@ export const rtcMediaKinds = Object.freeze(Object.keys(MEDIA));
 
 /** Topic of the LiveKit data messages of the rtc collection: UTF-8 JSON objects with a `kind` field. */
 export const rtcDataTopic = 'gramlot.rtc';
+export const rtcControlTopic = 'gramlot.control';
 /** Participant attributes set only by the server (RtcPageStore): role admin|presenter|guest, state waiting|admitted. */
 export const rtcRoleAttribute = 'gramlot.role';
 export const rtcStateAttribute = 'gramlot.state';
@@ -126,6 +127,34 @@ export class RtcRoomSession {
             throw rtcMediaError(kind,error);
         });
     }
+    /** Publish a user-approved tab capture through the existing participant. */
+    async publishTabStream(stream) {
+        if(!this.#connected || !this.canPublish)throw new Error('Join the meeting before sharing a tab');
+        const room=this.#room, track=stream.getVideoTracks()[0];
+        if(!track || track.readyState==='ended')throw new Error('A live video track is required');
+        await room.localParticipant.setScreenShareEnabled(false);
+        if(room!==this.#room || !this.#connected)throw new Error('Meeting disconnected');
+        this.#media.screen=true;
+        try {
+            await room.localParticipant.publishTrack(track,{source:this.#livekit.Track.Source.ScreenShare});
+            if(room!==this.#room || !this.#connected) {
+                await room.localParticipant.unpublishTrack(track);track.stop();
+                throw new Error('Meeting disconnected');
+            }
+            track.addEventListener('ended',()=>{
+                if(room===this.#room)void room.localParticipant.unpublishTrack(track).catch(error=>this.#events.error(error));
+            },{once:true});
+        } catch(error) { this.#media.screen=false;throw error; }
+        this.#changed();
+    }
+    /** Remote-control packets are directed; the application checks the server-owned grant. */
+    sendControl(message,identity) {
+        if(!this.#connected || typeof identity!=='string' || !identity)throw new Error('A connected recipient is required');
+        const payload=new TextEncoder().encode(JSON.stringify(message));
+        if(payload.length>4096)throw new Error('Control message too large');
+        return this.#room.localParticipant.publishData(payload,{topic:rtcControlTopic,
+            destinationIdentities:[identity],reliable:!(message.kind==='pointer' && message.type==='move')});
+    }
     /**
      * Raise or lower the local hand: the data message {kind:'hand',raised} goes to every participant.
      * Participants cannot write their own attributes, so the hand is not an attribute. Returns null when nothing changes.
@@ -174,6 +203,7 @@ export class RtcRoomSession {
             microphone:participant.isMicrophoneEnabled,camera:participant.isCameraEnabled,screen:participant.isScreenShareEnabled,
             connectionQuality:participant.connectionQuality,role:participant.attributes[rtcRoleAttribute] || null,
             state:participant.attributes[rtcStateAttribute] || null,
+            control:participant.attributes['gramlot.control'] || '',
             hand:participant===local ? this.#hand : this.#hands.has(participant.identity),
             avatar:participant===local ? this.#avatar : this.#avatars.get(participant.identity) ?? null,
             tracks:{camera:visible(participant.getTrackPublication(Track.Source.Camera)),
@@ -216,6 +246,14 @@ export class RtcRoomSession {
         });
     }
     #received(payload,participant,topic) {
+        if(topic===rtcControlTopic) {
+            if(!participant || payload.length>4096)return;
+            try {
+                const message=JSON.parse(new TextDecoder().decode(payload));
+                if(message && typeof message==='object')this.#events.control?.(message,participant.identity);
+            } catch { /* Ignore malformed packets from remote clients. */ }
+            return;
+        }
         if(topic!==rtcDataTopic)return;
         let message;
         try { message=JSON.parse(new TextDecoder().decode(payload)); }

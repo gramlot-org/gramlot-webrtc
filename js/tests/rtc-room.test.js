@@ -80,7 +80,7 @@ test('webrtc grammar is the generated Python grammar and LiveKit loads only on t
     assert.equal(room.url, 'wss://media.example.test'); assert.equal(room.token, 'token-a');
     assert.equal(f.get('status'), 'connected'); assert.equal(f.get('error'), '');
     assert.deepEqual(f.get('participants'), [{identity: 'local', name: 'Local', speaking: false, local: true,
-        microphone: false, camera: false, screen: false, connectionQuality: 'unknown', role: null, state: null, hand: false}]);
+        microphone: false, camera: false, screen: false, connectionQuality: 'unknown', role: null, state: null, control: '', hand: false}]);
     assert.deepEqual(f.tiles(), [['Local', 'camera', false]]);
 });
 
@@ -461,4 +461,42 @@ test('a fired chat goes to everyone or, with `to`, to one identity; received cha
     f.room.receive({kind: 'chat', text: 3}, remote);
     f.room.receive({kind: 'chat', text: 'server'});
     assert.equal(f.get('lastChat').text, 'hi'); assert.notEqual(f.get('unmuteRequested'), true);
+});
+
+
+test('tab capture publishes through the same participant without opening another screen picker', async t => {
+    const f = await connected(t);
+    const track = new f.window.EventTarget();
+    track.readyState = 'live'; track.stop = () => { track.readyState = 'ended'; };
+    const stream = {getVideoTracks: () => [track]};
+    const participant = f.room.localParticipant;
+    participant.publishTrack = async (given, options) => {
+        assert.equal(given, track); assert.equal(options.source, 'screen_share');
+        participant.publish('screen_share');
+        f.room.emit('localTrackPublished');
+    };
+    participant.unpublishTrack = async () => participant.unpublish('screen_share');
+    await f.element.publishTabStream(stream); await flush();
+    assert.equal(f.get('screen'), true);
+    assert.equal(fake.rooms.length, 1);
+    assert.equal(participant.calls.some(([source, enabled]) => source === 'screen_share' && enabled), false);
+    assert.equal(f.get('participants')[0].screen, true);
+    track.dispatchEvent(new f.window.Event('ended')); await flush();
+    assert.equal(f.get('screen'), false);
+});
+
+test('control topic preserves LiveKit sender identity, server grant and directed delivery', async t => {
+    const f = await connected(t), remote = new FakeParticipant('remote', 'Remote');
+    remote.attributes['gramlot.control'] = '{"controller":"local","lease":"lease"}';
+    f.room.join(remote); await flush();
+    assert.equal(f.get('participants').find(p => p.identity === 'remote').control, remote.attributes['gramlot.control']);
+    const received = [];
+    f.element.addEventListener('rtc-control', event => received.push(event.detail));
+    f.room.receive({kind: 'input', identity: 'forged'}, remote, 'gramlot.control');
+    f.room.receive({kind: 'input'}, null, 'gramlot.control');
+    f.room.receive('not JSON', remote, 'gramlot.control');
+    assert.equal(received.length, 1); assert.equal(received[0].identity, 'remote');
+    await f.element.sendControl({kind: 'pointer', type: 'move'}, 'remote');
+    const [, options] = f.room.localParticipant.sent.at(-1);
+    assert.deepEqual(options, {topic: 'gramlot.control', destinationIdentities: ['remote'], reliable: false});
 });

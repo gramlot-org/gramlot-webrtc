@@ -78,7 +78,7 @@ export const RtcRoom=defineComponent({
         videoInput:{dtype:'T',default:'',binding:'twoWay'},audioOutput:{dtype:'T',default:'',binding:'twoWay'}},
     implementation:Base=>class extends Base {
         #context; #session; #active=false; #requested=false; #hide; #grid; #sounds; #views=new Map(); #audio=new Map();
-        #tiles=new Set(); #list=[]; #written; #gridShown=true; #ready=false;
+        #tabPublishing=false; #tiles=new Set(); #list=[]; #written; #gridShown=true; #ready=false;
         constructor() {
             super();
             const style=this.ownerDocument.createElement('style');
@@ -96,6 +96,8 @@ export const RtcRoom=defineComponent({
                 state:status=>{this.#write('status',status);if(status==='disconnected')this.#write('canPublish',null);},
                 error:error=>this.#failed(error),changed:()=>this.#render(),mediaEnded:kind=>this.#write(kind,false),
                 received:(message,identity)=>this.#received(message,identity),
+                control:(message,identity)=>this.dispatchEvent(new this.ownerDocument.defaultView.CustomEvent(
+                    'rtc-control',{detail:{message,identity}})),
                 canPublish:flag=>{this.#write('canPublish',flag);this.#syncMedia();this.#syncRoom();},
                 devices:lists=>{for(const name of Object.keys(rtcDevices))this.#write(`${name}s`,lists[name]);},
                 activeDevice:(name,deviceId)=>{if(this.parameters[name]!==deviceId)this.#write(name,deviceId);}});
@@ -111,6 +113,13 @@ export const RtcRoom=defineComponent({
                 if(this.parameters.annotation)this.#annotate(this.parameters.annotation);}
             return rest;
         }
+        /** Application bridge for an extension-captured tab; no second LiveKit connection. */
+        async publishTabStream(stream) {
+            this.#tabPublishing=true;
+            try { await this.#session.publishTabStream(stream);this.#write('screen',true); }
+            finally { this.#tabPublishing=false; }
+        }
+        sendControl(message,identity){return this.#session.sendControl(message,identity);}
         /** Register an rtcTile placed inside this room; the room keeps its track current. */
         attachTile(tile){this.#tiles.add(tile);this.#showTile(tile);}
         detachTile(tile){this.#tiles.delete(tile);}
@@ -197,6 +206,7 @@ export const RtcRoom=defineComponent({
         // Called synchronously from projectAttributes: a click that writes `screen` reaches getDisplayMedia in its activation.
         // Without the publish permission (lobby) microphone and camera wait for it; a screen share needs a new gesture.
         #syncMedia(){
+            if(this.#tabPublishing)return;
             if(!this.#active||!this.#ready)return;
             if(!this.#session.canPublish){if(this.parameters.screen===true)this.#write('screen',false);return;}
             for(const kind of rtcMediaKinds)this.#session.setMedia(kind,this.parameters[kind]===true)?.catch(error=>{
