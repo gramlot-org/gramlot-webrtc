@@ -14,7 +14,8 @@ const TILE_STYLE=`.control-box{height:100%}
     .tile .face{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);height:min(52%,96px);width:auto;aspect-ratio:1;
         border-radius:50%;display:none;place-items:center;object-fit:cover;font-size:1.4em;font-weight:600;color:#fff;user-select:none}
     .tile:not([data-video]) .face:not([hidden]){display:grid}
-    .tile[data-speaking]{box-shadow:inset 0 0 0 3px var(--gramlot-focus-ring,#3b82f6)}`;
+    .tile[data-speaking]::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+        box-sizing:border-box;border:3px solid var(--gramlot-focus-ring,#3b82f6);border-radius:inherit}`;
 
 /** The initials of a display name: the first letter of its first two words. */
 export function rtcInitials(name) {
